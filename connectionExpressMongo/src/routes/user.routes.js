@@ -4,6 +4,8 @@ const userController = require('../controllers/user.controllers');
 
 // Retrieve all user
 router.get('/', userController.findAll);
+// Retrieve all user
+router.get('/session', userController.session);
 // Create a new user
 router.post('/', userController.create);
 // Retrieve a single user with user
