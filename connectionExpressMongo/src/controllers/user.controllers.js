@@ -4,32 +4,68 @@ const { base64decode } = require("nodejs-base64");
 
 //verifica la session con basic auth
 exports.session = (req, res, next) => {
-  User.find()
-    .then(users => {
-      if (req.headers["authorization"]) {
-        const authBase64 = req.headers["authorization"].split(" ");
-        const emailPass = base64decode(authBase64[1]);
-        const email = emailPass.split(":")[0];
-        const password = emailPass.split(":")[1];
-        users.forEach(element => {
-          if (element.email === email && element.password === password) {
-              res.send({ mensaje: `Bienvenido ${ element.first_name } `  });
+  app.use(function (req, res, next) {
+    if (req.headers["authorization"]) {
+      const token = req.headers['authorization'].split(' ')[1];
+      try {
+        //validate if token exists in the database
+        Session.findOne({ token }, function (error, session) {
+          if (error) {
+            console.log('error', error);
+            res.status(401);
+            res.send({
+              error: "Unauthorized "
+            });
+          }
+          if (session) {
             next();
             return;
+          } else {
+            res.status(401);
+            res.send({
+              error: "Unauthorized "
+            });
           }
         });
+      } catch (e) {
+        res.status(422);
+        res.send({
+          error: "There was an error: " + e.message
+        });
       }
+    } else {
       res.status(401);
       res.send({
         error: "Unauthorized "
       });
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Something went wrong while getting list of users."
-      });
-    });
+    }
+  })
+  // User.find()
+  //   .then(users => {
+  //     if (req.headers["authorization"]) {
+  //       const authBase64 = req.headers["authorization"].split(" ");
+  //       const emailPass = base64decode(authBase64[1]);
+  //       const email = emailPass.split(":")[0];
+  //       const password = emailPass.split(":")[1];
+  //       users.forEach(element => {
+  //         if (element.email === email && element.password === password) {
+  //             res.send({ mensaje: `Bienvenido ${ element.first_name } `  });
+  //           next();
+  //           return;
+  //         }
+  //       });
+  //     }
+  //     res.status(401);
+  //     res.send({
+  //       error: "Unauthorized "
+  //     });
+  //   })
+  //   .catch(err => {
+  //     res.status(500).send({
+  //       message:
+  //         err.message || "Something went wrong while getting list of users."
+  //     });
+  // });
 };
 
 // Retrieve and return all users from the database
