@@ -1,86 +1,77 @@
 const User = require("../models/user.model.js");
-const basicAuth = require("express-basic-auth");
-const { base64decode } = require("nodejs-base64");
+//const basicAuth = require("express-basic-auth");
+//const { base64decode } = require("nodejs-base64");
+const crypto = require("crypto");
+const Session = require("../models/user.model.js");
 
 //verifica la session con basic auth
 exports.session = (req, res, next) => {
-  app.use(function (req, res, next) {
-    if (req.headers["authorization"]) {
-      const token = req.headers['authorization'].split(' ')[1];
-      try {
-        //validate if token exists in the database
-        Session.findOne({ token }, function (error, session) {
-          if (error) {
-            console.log('error', error);
-            res.status(401);
-            res.send({
-              error: "Unauthorized "
+  User.find()
+    .then(users => {
+      //if (req.headers["authorization"]) {
+      // const authBase64 = req.headers["authorization"].split(" ");
+      // const emailPass = base64decode(authBase64[1]);
+      // const email = emailPass.split(":")[0];
+      // const password = emailPass.split(":")[1];
+      users.forEach(element => {
+        if (
+          element.email === req.body.email &&
+          element.password === req.body.password
+        ) {
+          let token = crypto
+            .createHash("md5")
+            .update(req.body.email + req.body.password)
+            .digest("hex");
+          const session = new Session();
+          session.token = token;
+          session.email = element.email;
+          session.expire = new Date();
+          session.save(function(err) {
+            if (err) {
+              res.status(422);
+              console.log("error while saving the session", err);
+              res.json({
+                error: "There was an error saving the session"
+              });
+            }
+            res.status(201).json({
+              session
             });
-          }
-          if (session) {
-            next();
+            res.send({ mensaje: `Bienvenido ${element.first_name} ` });
             return;
-          } else {
-            res.status(401);
-            res.send({
-              error: "Unauthorized "
-            });
-          }
-        });
-      } catch (e) {
-        res.status(422);
-        res.send({
-          error: "There was an error: " + e.message
-        });
-      }
-    } else {
+            //next();
+          });
+        } else {
+          next();
+        }
+      });
+      //}
       res.status(401);
       res.send({
         error: "Unauthorized "
       });
-    }
-  })
-  // User.find()
-  //   .then(users => {
-  //     if (req.headers["authorization"]) {
-  //       const authBase64 = req.headers["authorization"].split(" ");
-  //       const emailPass = base64decode(authBase64[1]);
-  //       const email = emailPass.split(":")[0];
-  //       const password = emailPass.split(":")[1];
-  //       users.forEach(element => {
-  //         if (element.email === email && element.password === password) {
-  //             res.send({ mensaje: `Bienvenido ${ element.first_name } `  });
-  //           next();
-  //           return;
-  //         }
-  //       });
-  //     }
-  //     res.status(401);
-  //     res.send({
-  //       error: "Unauthorized "
-  //     });
-  //   })
-  //   .catch(err => {
-  //     res.status(500).send({
-  //       message:
-  //         err.message || "Something went wrong while getting list of users."
-  //     });
-  // });
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+          err.message || "Something went wrong while getting list of users."
+      });
+    });
 };
 
 // Retrieve and return all users from the database
 exports.findAll = (req, res) => {
-    User.find()
-      .then(users => {
-        res.send(users);
-      })
-      .catch(err => {
-        res.status(500).send({
-          message:
-            err.message || "Something went wrong while getting list of users."
-        });
+  User.find()
+    .then(users => {
+      res.send(users);
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+          err.message || "Something went wrong while getting list of users."
       });
-  };
+    });
+};
 // Create a new User
 exports.create = (req, res) => {
   if (!req.body) {
